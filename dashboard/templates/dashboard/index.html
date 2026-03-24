@@ -1,0 +1,287 @@
+{% extends 'dashboard/base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-md-3">
+        <div class="card stat-card primary">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Total Processed</h5>
+                <h2 class="card-text" id="total_processed">{{ total_processed }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card danger">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Total Attacks</h5>
+                <h2 class="card-text" id="total_attacks">{{ total_attacks }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card warning">
+            <div class="card-body">
+                <h5 class="card-title text-muted">Blocked IPs</h5>
+                <h2 class="card-text" id="blocked_count">{{ blocked_count }}</h2>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card stat-card" id="status-card-bg">
+            <div class="card-body">
+                <h5 class="card-title text-muted">System Status</h5>
+                <h2 class="card-text" id="system-status-text">Checking...</h2>
+                <form action="{% url 'toggle_status' %}" method="POST" class="mt-2">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-sm" id="toggle-status-btn">Toggle System</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                Traffic Overview (Last 10 Minutes)
+            </div>
+            <div class="card-body">
+                <canvas id="trafficChart"></canvas>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                Attack Distribution
+            </div>
+            <div class="card-body">
+                <canvas id="attackChart"></canvas>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row mt-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                Recent Attacks
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>IP</th>
+                                <th>Type</th>
+                                <th>Confidence</th>
+                                <th>Severity</th>
+                            </tr>
+                        </thead>
+                        <tbody id="attack-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header">
+                Blocked IPs
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-striped table-sm">
+                        <thead>
+                            <tr>
+                                <th>IP Address</th>
+                                <th>Blocked At</th>
+                                <th>Reason</th>
+                            </tr>
+                        </thead>
+                        <tbody id="blocked-table-body">
+                            <!-- Populated by JS -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let trafficChart;
+    let attackChart;
+
+    function initCharts() {
+        const ctxTraffic = document.getElementById('trafficChart').getContext('2d');
+        trafficChart = new Chart(ctxTraffic, {
+            type: 'bar',
+            data: {
+                labels: [],
+                datasets: [
+                    {
+                        label: 'Low Severity',
+                        data: [],
+                        backgroundColor: '#198754', // success green
+                        stack: 'Stack 0'
+                    },
+                    {
+                        label: 'Medium Severity',
+                        data: [],
+                        backgroundColor: '#ffc107', // warning yellow
+                        stack: 'Stack 0'
+                    },
+                    {
+                        label: 'High Severity',
+                        data: [],
+                        backgroundColor: '#dc3545', // danger red
+                        stack: 'Stack 0'
+                    }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    x: {
+                        stacked: true,
+                        title: {
+                            display: true,
+                            text: 'Time (Last 10 Minutes)'
+                        }
+                    },
+                    y: {
+                        stacked: true,
+                        beginAtZero: true,
+                        title: {
+                            display: true,
+                            text: 'Rate (Requests/Second)'
+                        }
+                    }
+                }
+            }
+        });
+
+        const ctxAttack = document.getElementById('attackChart').getContext('2d');
+        attackChart = new Chart(ctxAttack, {
+            type: 'doughnut',
+            data: {
+                labels: [],
+                datasets: [{
+                    data: [],
+                    backgroundColor: ['#dc3545', '#ffc107', '#fd7e14', '#6c757d', '#0d6efd']
+                }]
+            }
+        });
+    }
+
+    function updateDashboard() {
+        fetch('/api/stats/')
+            .then(response => response.json())
+            .then(data => {
+                // Update System Status
+                const statusCard = document.getElementById('status-card-bg');
+                const statusText = document.getElementById('system-status-text');
+                const toggleBtn = document.getElementById('toggle-status-btn');
+
+                if (data.is_active) {
+                    statusCard.className = 'card stat-card success';
+                    statusText.className = 'card-text text-success';
+                    statusText.innerText = 'Active';
+                    toggleBtn.className = 'btn btn-sm btn-danger';
+                    toggleBtn.innerText = 'Deactivate System';
+                } else {
+                    statusCard.className = 'card stat-card danger';
+                    statusText.className = 'card-text text-danger';
+                    statusText.innerText = 'Inactive';
+                    toggleBtn.className = 'btn btn-sm btn-success';
+                    toggleBtn.innerText = 'Activate System';
+                }
+
+                // Update Counters
+                document.getElementById('total_processed').innerText = data.total_requests;
+                document.getElementById('total_attacks').innerText = data.total_attacks;
+                document.getElementById('blocked_count').innerText = data.blocked_ips;
+
+                // Update Charts
+                // Traffic
+                trafficChart.data.labels = data.traffic_labels;
+                trafficChart.data.datasets[0].data = data.traffic_low;
+                trafficChart.data.datasets[1].data = data.traffic_medium;
+                trafficChart.data.datasets[2].data = data.traffic_high;
+
+                // Live time update
+                const liveTime = new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', second: '2-digit', hour12: true });
+                trafficChart.options.scales.x.title.text = `Live Tracking (Started at ${data.traffic_labels[0]} - Present: ${liveTime})`;
+
+                trafficChart.update();
+
+                // Attack Distribution
+                const attackLabels = data.distribution.map(d => d.attack_type);
+                const attackCounts = data.distribution.map(d => d.count);
+                attackChart.data.labels = attackLabels;
+                attackChart.data.datasets[0].data = attackCounts;
+                attackChart.update();
+
+                // Update Recent Attacks Table
+                const attackTable = document.getElementById('attack-table-body');
+                attackTable.innerHTML = '';
+                if (data.recent_logs.length === 0) {
+                    attackTable.innerHTML = '<tr><td colspan="5">No recent attacks.</td></tr>';
+                } else {
+                    data.recent_logs.forEach(attack => {
+                        const date = new Date(attack.timestamp);
+                        const timeStr = date.toLocaleTimeString();
+                        const badgeClass = attack.severity === 'High' ? 'danger' : (attack.severity === 'Medium' ? 'warning' : 'secondary');
+
+                        const row = `
+                            <tr>
+                                <td>${timeStr}</td>
+                                <td>${attack.source_ip}</td>
+                                <td>${attack.attack_type}</td>
+                                <td>${attack.confidence.toFixed(1)}%</td>
+                                <td><span class="badge bg-${badgeClass}">${attack.severity}</span></td>
+                            </tr>
+                        `;
+                        attackTable.innerHTML += row;
+                    });
+                }
+
+                // Update Blocked IPs Table
+                const blockedTable = document.getElementById('blocked-table-body');
+                blockedTable.innerHTML = '';
+                if (data.blocked_table && data.blocked_table.length === 0) {
+                    blockedTable.innerHTML = '<tr><td colspan="3">No blocked IPs.</td></tr>';
+                } else if (data.blocked_table) {
+                    data.blocked_table.forEach(ip => {
+                        const date = new Date(ip.blocked_at);
+                        const timeStr = date.toLocaleTimeString();
+                        const row = `
+                            <tr>
+                                <td>${ip.ip_address}</td>
+                                <td>${timeStr}</td>
+                                <td>${ip.reason.substring(0, 30)}...</td>
+                            </tr>
+                        `;
+                        blockedTable.innerHTML += row;
+                    });
+                }
+            })
+            .catch(error => console.error('Error fetching stats:', error));
+    }
+
+    // Initialize
+    document.addEventListener('DOMContentLoaded', function () {
+        initCharts();
+        updateDashboard(); // Initial call
+        setInterval(updateDashboard, 2000); // Poll every 2 seconds
+    });
+</script>
+{% endblock %}

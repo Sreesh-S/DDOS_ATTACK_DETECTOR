@@ -1,0 +1,9 @@
+Django>=5.0
+djangorestframework
+pandas
+numpy
+scikit-learn
+joblib
+gunicorn
+whitenoise
+requests
