@@ -20,7 +20,9 @@ for i, scenario in enumerate(scenarios):
     payload = payloads[scenario].copy()
     payload["Source IP"] = f"192.168.100.{i+1}"
     
-    resp = requests.post(api_url, json=payload, timeout=5)
+    import urllib3
+    urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+    resp = requests.post(api_url, json=payload, timeout=5, verify=False)
     
     if resp.status_code == 200:
         data = resp.json()

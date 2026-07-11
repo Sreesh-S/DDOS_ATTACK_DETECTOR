@@ -104,7 +104,9 @@ def simulate_hulk_attack():
                 s.headers.update({'Content-Type': 'application/json'})
                 
                 # Send the exact JSON representation of a DoS Hulk
-                response = s.post(API_URL, json=HULK_PAYLOAD, timeout=5)
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                response = s.post(API_URL, json=HULK_PAYLOAD, timeout=5, verify=False)
                 
                 if response.status_code == 200:
                     res_data = response.json()

@@ -40,7 +40,9 @@ def simulate():
             data["Destination IP"] = "10.0.0.5" # Web server
 
             try:
-                response = requests.post(API_URL, json=data, timeout=2)
+                import urllib3
+                urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+                response = requests.post(API_URL, json=data, timeout=2, verify=False)
                 if response.status_code == 200:
                     resp_data = response.json()
                     pred = resp_data.get('prediction', 'Unknown')

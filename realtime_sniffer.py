@@ -81,7 +81,9 @@ class IDSEngine:
         try:
             # We add a timeout so stuck requests don't hang threads
             # Send the whole batch as a JSON list
-            response = session.post(self.api_url, json=batch, timeout=15.0)
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            response = session.post(self.api_url, json=batch, timeout=15.0, verify=False)
             
             if response.status_code == 200:
                 data_list = response.json()

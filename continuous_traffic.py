@@ -51,7 +51,9 @@ def simulate_continuous():
             if "Flow Duration" in data:
                 data["Flow Duration"] += random.randint(-10, 100)
                 
-            response = requests.post(API_URL, json=data)
+            import urllib3
+            urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+            response = requests.post(API_URL, json=data, verify=False)
             
             if response.status_code == 200:
                 res_json = response.json()
