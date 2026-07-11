@@ -76,10 +76,24 @@ WSGI_APPLICATION = 'ddos_project.wsgi.application'
 # Database
 # https://docs.djangoproject.com/en/6.0/ref/settings/#databases
 
+import os
+import shutil
+
+DB_PATH = BASE_DIR / 'db.sqlite3'
+
+if os.environ.get('VERCEL') == '1':
+    tmp_db = '/tmp/db.sqlite3'
+    if not os.path.exists(tmp_db) and os.path.exists(DB_PATH):
+        try:
+            shutil.copy2(DB_PATH, tmp_db)
+        except Exception as e:
+            print(f"Error copying database to /tmp: {e}")
+    DB_PATH = Path(tmp_db)
+
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'NAME': DB_PATH,
         'OPTIONS': {
             'timeout': 20,
         }
