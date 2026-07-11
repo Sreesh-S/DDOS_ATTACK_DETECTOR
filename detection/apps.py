@@ -12,7 +12,8 @@ class DetectionConfig(AppConfig):
 
     def ready(self):
         # Prevent double-loading in runserver
-        if os.environ.get('RUN_MAIN', None) != 'true':
+        import sys
+        if 'runserver' in sys.argv and os.environ.get('RUN_MAIN', None) != 'true':
             return
             
         print("Initializing ML Model for real-time detection...")
