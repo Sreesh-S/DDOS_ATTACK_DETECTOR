@@ -7,7 +7,7 @@ import logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
 # This must point to the detector machine's API
-API_URL = "http://10.115.17.46:8000/api/predict/"
+API_URL = "http://127.0.0.1:8000/api/predict/"
 
 # Loading exact attack payloads directly from the dataset that trained the model
 HULK_PAYLOAD = {

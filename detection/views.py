@@ -158,28 +158,32 @@ class PredictAPIView(APIView):
             })
 
         # Bulk save to DB
-        if predictions_to_create:
-            Prediction.objects.bulk_create(predictions_to_create)
-            
-            # Manually update GlobalStat since bulk_create doesn't trigger signals
-            from dashboard.models import GlobalStat
-            from django.db.models import F
-            
-            num_predictions = len(predictions_to_create)
-            num_attacks = sum(1 for p in predictions_to_create if p.attack_type != 'Normal')
-            
-            GlobalStat.objects.filter(pk=1).update(
-                total_processed=F('total_processed') + num_predictions,
-                total_attacks=F('total_attacks') + num_attacks
-            )
-            
-        if new_blocks:
-            BlockedIP.objects.bulk_create(new_blocks, ignore_conflicts=True)
-            
-            # Update blocked_ips count
-            from dashboard.models import GlobalStat
-            blocked_count = BlockedIP.objects.count()
-            GlobalStat.objects.filter(pk=1).update(blocked_ips=blocked_count)
+        try:
+            if predictions_to_create:
+                Prediction.objects.bulk_create(predictions_to_create)
+                
+                # Manually update GlobalStat since bulk_create doesn't trigger signals
+                from dashboard.models import GlobalStat
+                from django.db.models import F
+                
+                num_predictions = len(predictions_to_create)
+                num_attacks = sum(1 for p in predictions_to_create if p.attack_type != 'Normal')
+                
+                GlobalStat.objects.filter(pk=1).update(
+                    total_processed=F('total_processed') + num_predictions,
+                    total_attacks=F('total_attacks') + num_attacks
+                )
+                
+            if new_blocks:
+                BlockedIP.objects.bulk_create(new_blocks, ignore_conflicts=True)
+                
+                # Update blocked_ips count
+                from dashboard.models import GlobalStat
+                blocked_count = BlockedIP.objects.count()
+                GlobalStat.objects.filter(pk=1).update(blocked_ips=blocked_count)
+        except Exception as db_err:
+            import logging
+            logging.warning(f"Database write failed (likely read-only serverless environment): {db_err}")
 
         # Return list if input was list, else single object
         if is_batch:

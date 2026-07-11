@@ -5,7 +5,8 @@ import json
 import os
 import sys
 
-API_URL = "http://127.0.0.1:8000/api/predict/"
+import os
+API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000/api/predict/")
 
 # Load dynamic payloads
 try:

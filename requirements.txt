@@ -7,3 +7,6 @@ joblib
 gunicorn
 whitenoise
 requests
+geoip2
+scapy
+psutil

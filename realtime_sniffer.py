@@ -9,7 +9,8 @@ from scapy.all import sniff, IP, TCP, UDP
 from flow_tracker import FlowTracker
 
 # Configuration
-API_ENDPOINT = "http://127.0.0.1:8000/api/predict/"
+import os
+API_ENDPOINT = os.environ.get("API_URL", "http://127.0.0.1:8000/api/predict/")
 SNIFF_INTERFACE = None  # None means sniff on all interfaces, or define e.g., "Ethernet"
 FLOW_TIMEOUT = 30.0      # Time in seconds to timeout an inactive flow (reduced for better real-time updates)
 CHECK_INTERVAL = 5.0     # Time in seconds between checking for timed-out flows (reduced)

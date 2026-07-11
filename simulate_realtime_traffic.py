@@ -6,7 +6,8 @@ import logging
 
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(message)s')
 
-API_URL = "http://127.0.0.1:8000/api/predict/"
+import os
+API_URL = os.environ.get("API_URL", "http://127.0.0.1:8000/api/predict/")
 PAYLOADS_FILE = "attack_payloads.json"
 
 def generate_random_ip():
