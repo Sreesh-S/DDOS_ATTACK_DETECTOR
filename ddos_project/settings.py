@@ -89,6 +89,14 @@ if os.environ.get('VERCEL') == '1':
         except Exception as e:
             print(f"Error copying database to /tmp: {e}")
     DB_PATH = Path(tmp_db)
+elif os.path.exists('/data'):
+    persistent_db = '/data/db.sqlite3'
+    if not os.path.exists(persistent_db) and os.path.exists(DB_PATH):
+        try:
+            shutil.copy2(DB_PATH, persistent_db)
+        except Exception as e:
+            print(f"Error copying database to /data: {e}")
+    DB_PATH = Path(persistent_db)
 
 DATABASES = {
     'default': {
